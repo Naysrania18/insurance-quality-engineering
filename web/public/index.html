@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Demo Commercial Insurance Platform</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 0; background: #f4f6f8; color: #1d2733; }
+      header { background: #173a5e; color: #fff; padding: 12px 24px; }
+      header small { opacity: 0.8; }
+      nav { display: flex; gap: 8px; padding: 12px 24px; background: #fff; border-bottom: 1px solid #d8dee4; }
+      nav button { padding: 8px 16px; border: 1px solid #b8c2cc; background: #fff; cursor: pointer; border-radius: 4px; }
+      nav button.active { background: #173a5e; color: #fff; }
+      main { padding: 24px; max-width: 1000px; margin: 0 auto; }
+      section { display: none; background: #fff; padding: 16px 20px; border-radius: 6px; margin-bottom: 16px; }
+      section.active { display: block; }
+      label { display: block; margin: 8px 0 2px; font-size: 13px; }
+      input, select, textarea { padding: 6px; width: 320px; max-width: 100%; }
+      button.primary { margin-top: 12px; padding: 8px 16px; background: #1b7f4b; color: #fff; border: 0; border-radius: 4px; cursor: pointer; }
+      table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 14px; }
+      th, td { border-bottom: 1px solid #e3e8ed; padding: 6px 8px; text-align: left; }
+      #message { padding: 10px 14px; border-radius: 4px; margin-bottom: 12px; display: none; }
+      #message.ok { display: block; background: #e3f6ea; }
+      #message.error { display: block; background: #fde7e7; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>Demo Commercial Insurance Platform</strong>
+      <small> - demo system for testing practice, fake data only</small>
+    </header>
+    <nav>
+      <button data-tab="broker" data-testid="tab-broker" class="active">Broker</button>
+      <button data-tab="underwriter" data-testid="tab-underwriter">Underwriter</button>
+      <button data-tab="claims" data-testid="tab-claims">Claims</button>
+    </nav>
+    <main>
+      <div id="message" data-testid="message" role="status"></div>
+
+      <section id="broker" class="active">
+        <h2>Submit a risk</h2>
+        <label for="broker-select">Broker</label>
+        <select id="broker-select" data-testid="broker-select"></select>
+        <label for="risk-type">Risk type</label>
+        <select id="risk-type" data-testid="risk-type">
+          <option value="marine_cargo">Marine cargo</option>
+          <option value="commercial_property">Commercial property</option>
+        </select>
+        <label for="insured-value">Insured value (USD)</label>
+        <input id="insured-value" data-testid="insured-value" type="number" step="0.01" />
+        <label for="risk-description">Description</label>
+        <textarea id="risk-description" data-testid="risk-description" rows="2"></textarea>
+        <button class="primary" id="submit-risk" data-testid="submit-risk">Submit risk</button>
+      </section>
+
+      <section id="underwriter">
+        <h2>Underwriter desk</h2>
+        <h3>Risks awaiting a quote</h3>
+        <table data-testid="submitted-risks">
+          <thead><tr><th>Risk</th><th>Type</th><th>Insured value</th><th></th></tr></thead>
+          <tbody id="submitted-body"></tbody>
+        </table>
+        <h3>Quotes ready to bind</h3>
+        <table data-testid="quoted-risks">
+          <thead><tr><th>Quote</th><th>Premium</th><th></th></tr></thead>
+          <tbody id="quoted-body"></tbody>
+        </table>
+        <h3>Bound policies</h3>
+        <table data-testid="policies">
+          <thead><tr><th>Policy</th><th>Premium</th><th>Insurer shares</th></tr></thead>
+          <tbody id="policies-body"></tbody>
+        </table>
+      </section>
+
+      <section id="claims">
+        <h2>Notify a claim</h2>
+        <label for="claim-policy">Policy</label>
+        <select id="claim-policy" data-testid="claim-policy"></select>
+        <label for="loss-date">Loss date</label>
+        <input id="loss-date" data-testid="loss-date" type="date" />
+        <label for="claim-amount">Amount claimed (USD)</label>
+        <input id="claim-amount" data-testid="claim-amount" type="number" step="0.01" />
+        <label for="claim-description">Description</label>
+        <textarea id="claim-description" data-testid="claim-description" rows="2"></textarea>
+        <button class="primary" id="submit-claim" data-testid="submit-claim">Notify claim</button>
+        <h3>Claims</h3>
+        <table data-testid="claims-table">
+          <thead><tr><th>Claim</th><th>Status</th><th>Claimed</th><th>Assessed</th><th>Settled</th><th></th></tr></thead>
+          <tbody id="claims-body"></tbody>
+        </table>
+      </section>
+    </main>
+    <script src="app.js"></script>
+  </body>
+</html>
