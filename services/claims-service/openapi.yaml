@@ -1,3 +1,133 @@
 openapi: 3.0.3
-info: {title: claims-service, version: 1.0.0}
-paths: {}
+info:
+  title: Claims Service (demo)
+  version: 1.0.0
+  description: Claim notification, assessment and settlement. Emits ClaimNotified and ClaimSettled. Demo system, fake data only. Money is integer cents.
+servers:
+  - url: http://localhost:3003
+paths:
+  /health:
+    get:
+      summary: Liveness
+      responses:
+        '200': { description: OK }
+  /claims:
+    get:
+      summary: List claims
+      parameters:
+        - { name: policyId, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Claims
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Claim' } }
+    post:
+      summary: Notify a claim against a bound policy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [policyId, lossDate, amountClaimedCents, description]
+              properties:
+                policyId: { type: string, format: uuid }
+                lossDate: { type: string, format: date }
+                amountClaimedCents: { type: integer, minimum: 1 }
+                description: { type: string, minLength: 1, maxLength: 500 }
+      responses:
+        '201':
+          description: Claim notified
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Claim' }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+        '503': { $ref: '#/components/responses/Error' }
+  /claims/{id}:
+    get:
+      summary: Get a claim
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Claim
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Claim' }
+        '404': { $ref: '#/components/responses/Error' }
+  /claims/{id}/assess:
+    post:
+      summary: Assess a notified claim
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [assessedCents]
+              properties:
+                assessedCents: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Claim assessed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Claim' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+  /claims/{id}/settle:
+    post:
+      summary: Settle an assessed claim
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [settledCents]
+              properties:
+                settledCents: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Claim settled
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Claim' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '422': { $ref: '#/components/responses/Error' }
+components:
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error:
+                type: object
+                properties: { code: { type: string }, message: { type: string } }
+  schemas:
+    Claim:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        claimRef: { type: string }
+        policyId: { type: string, format: uuid }
+        lossDate: { type: string, format: date }
+        amountClaimedCents: { type: integer }
+        assessedCents: { type: integer, nullable: true }
+        settledCents: { type: integer, nullable: true }
+        description: { type: string }
+        status: { type: string, enum: [NOTIFIED, ASSESSED, SETTLED] }

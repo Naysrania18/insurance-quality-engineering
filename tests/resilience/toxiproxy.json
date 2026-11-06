@@ -1,0 +1,5 @@
+[
+  { "name": "policy", "listen": "0.0.0.0:8666", "upstream": "policy-service:3002", "enabled": true },
+  { "name": "rabbit", "listen": "0.0.0.0:8667", "upstream": "rabbitmq:5672", "enabled": true },
+  { "name": "postgres", "listen": "0.0.0.0:8668", "upstream": "postgres:5432", "enabled": true }
+]

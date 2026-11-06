@@ -1,3 +1,97 @@
 openapi: 3.0.3
-info: {title: policy-service, version: 1.0.0}
-paths: {}
+info:
+  title: Policy Service (demo)
+  version: 1.0.0
+  description: Binds quoted risks into policies and splits the premium across a co-insurance panel. Emits PolicyBound. Demo system, fake data only. Money is integer cents; shares are basis points.
+servers:
+  - url: http://localhost:3002
+paths:
+  /health:
+    get:
+      summary: Liveness
+      responses:
+        '200': { description: OK }
+  /policies:
+    get:
+      summary: List policies
+      responses:
+        '200':
+          description: Policies
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Policy' } }
+    post:
+      summary: Bind a quote into a policy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quoteId]
+              properties:
+                quoteId: { type: string, format: uuid }
+                panel:
+                  type: array
+                  description: Optional co-insurance panel. Defaults to a 3-insurer panel. Must total 10000 bps.
+                  items:
+                    type: object
+                    required: [insurer, bps]
+                    properties:
+                      insurer: { type: string }
+                      bps: { type: integer, minimum: 1, maximum: 10000 }
+      responses:
+        '201':
+          description: Policy bound
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Policy' }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /policies/{id}:
+    get:
+      summary: Get a policy with its insurer shares
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Policy
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Policy' }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+components:
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error:
+                type: object
+                properties: { code: { type: string }, message: { type: string } }
+  schemas:
+    Share:
+      type: object
+      properties:
+        insurer: { type: string }
+        bps: { type: integer }
+        amountCents: { type: integer }
+    Policy:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        policyRef: { type: string }
+        quoteId: { type: string, format: uuid }
+        status: { type: string, enum: [BOUND, CANCELLED] }
+        sumInsuredCents: { type: integer }
+        totalPremiumCents: { type: integer }
+        openClaims: { type: integer }
+        claimsPaidCents: { type: integer }
+        boundAt: { type: string, format: date-time }
+        shares: { type: array, items: { $ref: '#/components/schemas/Share' } }

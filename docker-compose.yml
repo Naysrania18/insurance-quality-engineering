@@ -1,0 +1,82 @@
+# One command: docker compose up --build -d
+# Demo system. Credentials below are throwaway local values, not secrets.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: demo
+      POSTGRES_PASSWORD: demo
+      POSTGRES_DB: insurance
+    ports: ['5432:5432']
+    volumes:
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U demo -d insurance']
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    ports: ['5672:5672', '15672:15672']
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', '-q', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.9.0
+    command: ['-host=0.0.0.0', '-config=/config/toxiproxy.json']
+    volumes:
+      - ./tests/resilience/toxiproxy.json:/config/toxiproxy.json:ro
+    ports: ['8474:8474', '8666:8666', '8667:8667', '8668:8668']
+    depends_on: [postgres, rabbitmq]
+    profiles: ['resilience']
+
+  quote-service:
+    build: .
+    environment:
+      SERVICE: quote
+      PORT: 3001
+      DATABASE_URL: postgres://demo:demo@postgres:5432/insurance
+    ports: ['3001:3001']
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  policy-service:
+    build: .
+    environment:
+      SERVICE: policy
+      PORT: 3002
+      DATABASE_URL: postgres://demo:demo@postgres:5432/insurance
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
+    ports: ['3002:3002']
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  claims-service:
+    build: .
+    environment:
+      SERVICE: claims
+      PORT: 3003
+      DATABASE_URL: ${CLAIMS_DB_URL:-postgres://demo:demo@postgres:5432/insurance}
+      RABBITMQ_URL: ${CLAIMS_RABBIT_URL:-amqp://guest:guest@rabbitmq:5672}
+      POLICY_SERVICE_URL: ${CLAIMS_POLICY_URL:-http://policy-service:3002}
+      POLICY_TIMEOUT_MS: '1500'
+    ports: ['3003:3003']
+    depends_on:
+      postgres: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
+
+  web:
+    build: .
+    command: ['npx', 'tsx', 'web/main.ts']
+    environment:
+      PORT: 3000
+      QUOTE_URL: http://quote-service:3001
+      POLICY_URL: http://policy-service:3002
+      CLAIMS_URL: http://claims-service:3003
+    ports: ['3000:3000']
+    depends_on: [quote-service, policy-service, claims-service]

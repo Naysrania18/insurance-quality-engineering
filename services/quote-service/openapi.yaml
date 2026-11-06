@@ -1,3 +1,163 @@
 openapi: 3.0.3
-info: {title: quote-service, version: 1.0.0}
-paths: {}
+info:
+  title: Quote Service (demo)
+  version: 1.0.0
+  description: Broker risk submission and underwriter quoting. Demo system, fake data only. Money is integer cents.
+servers:
+  - url: http://localhost:3001
+paths:
+  /health:
+    get:
+      summary: Liveness
+      responses:
+        '200': { description: OK }
+  /brokers:
+    get:
+      summary: List brokers
+      responses:
+        '200':
+          description: Brokers
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Broker' } }
+    post:
+      summary: Create a broker
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BrokerInput' }
+      responses:
+        '201': { description: Created }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /risks:
+    get:
+      summary: List risks (optionally by status)
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [SUBMITTED, QUOTED, BOUND] } }
+      responses:
+        '200':
+          description: Risks
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Risk' } }
+    post:
+      summary: Broker submits a risk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RiskInput' }
+      responses:
+        '201':
+          description: Risk submitted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Risk' }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /risks/{id}:
+    get:
+      summary: Get a risk
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Risk
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Risk' }
+        '400': { $ref: '#/components/responses/Error' }
+        '404': { $ref: '#/components/responses/Error' }
+  /risks/{id}/quote:
+    post:
+      summary: Underwriter quotes a submitted risk
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '201':
+          description: Quote created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Quote' }
+        '404': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+  /quotes:
+    get:
+      summary: List quotes
+      parameters:
+        - { name: riskId, in: query, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Quotes
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Quote' } }
+  /quotes/{id}:
+    get:
+      summary: Get a quote
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: Quote
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Quote' }
+        '404': { $ref: '#/components/responses/Error' }
+components:
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties: { code: { type: string }, message: { type: string } }
+    Broker:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string }
+    BrokerInput:
+      type: object
+      required: [name, email]
+      properties:
+        name: { type: string, maxLength: 120 }
+        email: { type: string, format: email }
+    RiskInput:
+      type: object
+      required: [brokerId, riskType, insuredValueCents, description]
+      properties:
+        brokerId: { type: string, format: uuid }
+        riskType: { type: string, enum: [marine_cargo, commercial_property] }
+        insuredValueCents: { type: integer, minimum: 1000000, maximum: 5000000000 }
+        description: { type: string, minLength: 1, maxLength: 500 }
+    Risk:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        brokerId: { type: string, format: uuid }
+        riskType: { type: string }
+        insuredValueCents: { type: integer }
+        currency: { type: string }
+        description: { type: string }
+        status: { type: string, enum: [SUBMITTED, QUOTED, BOUND] }
+        createdAt: { type: string, format: date-time }
+    Quote:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        riskId: { type: string, format: uuid }
+        premiumCents: { type: integer }
+        status: { type: string, enum: [QUOTED, ACCEPTED] }
+        createdAt: { type: string, format: date-time }

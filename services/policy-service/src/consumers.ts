@@ -21,9 +21,9 @@ async function refreshPolicy(q: Queryable, policyId: string): Promise<void> {
  * Handle claim events. Safe under duplicates (processOnce) and out-of-order delivery
  * (ledger upserts are commutative, counters are derived).
  */
-export function policyClaimHandler(db: Db) {
+export function policyClaimHandler(db: Db, consumer: string = POLICY_CONSUMER) {
   return async (e: DomainEvent): Promise<void> => {
-    await processOnce(db, POLICY_CONSUMER, e, async (q) => {
+    await processOnce(db, consumer, e, async (q) => {
       if (e.type === 'ClaimNotified') {
         await q.query(
           `INSERT INTO policy_claim_ledger (claim_id, policy_id, notified) VALUES ($1,$2,TRUE)
