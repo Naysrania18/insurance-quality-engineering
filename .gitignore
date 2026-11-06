@@ -1,0 +1,12 @@
+node_modules/
+dist/
+reports/
+test-results/
+playwright-report/
+coverage/
+.env
+*.log
+pacts/
+ai-testing/review/*.json
+!ai-testing/review/.gitkeep
+.DS_Store

@@ -1,0 +1,61 @@
+{
+  "name": "insurance-quality-engineering",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Quality engineering portfolio: demo commercial insurance platform with a full test suite (demo system, fake data only)",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx scripts/dev-all.ts",
+    "seed": "tsx db/seed/seed.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test:unit": "vitest run --config vitest.config.ts",
+    "test:sql": "vitest run --config vitest.integration.config.ts tests/sql",
+    "test:events": "vitest run --config vitest.integration.config.ts tests/events",
+    "test:migration": "vitest run --config vitest.integration.config.ts tests/migration",
+    "test:contract": "vitest run --config vitest.integration.config.ts tests/contract",
+    "test:ai": "vitest run --config vitest.integration.config.ts ai-testing",
+    "test:api": "playwright test --project=api",
+    "test:e2e": "playwright test --project=e2e",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:newman": "tsx scripts/run-newman.ts",
+    "test:resilience": "vitest run --config vitest.integration.config.ts tests/resilience",
+    "report:migration": "tsx tests/migration/run-report.ts",
+    "report:quality": "tsx scripts/quality-summary.ts",
+    "ai:generate": "tsx ai-testing/src/cli.ts"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.15",
+    "@faker-js/faker": "^10.6.0",
+    "amqplib": "^2.2.1",
+    "express": "^5.3.0",
+    "pg": "^8.23.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@anthropic-ai/sdk": "^1.6.0",
+    "@eslint/js": "^10.0.1",
+    "@pact-foundation/pact": "^17.1.4",
+    "@playwright/test": "^1.65.0",
+    "@types/amqplib": "^0.10.8",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.6",
+    "@types/pg": "^8.23.1",
+    "@vitest/coverage-v8": "^5.1.0",
+    "ajv": "^8.20.0",
+    "eslint": "^10.14.0",
+    "newman": "^6.2.3",
+    "newman-reporter-htmlextra": "^1.23.1",
+    "prettier": "^3.9.10",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.1.0"
+  }
+}

@@ -1,0 +1,11 @@
+node_modules
+reports
+coverage
+package-lock.json
+playwright-report
+test-results
+pacts
+*.yml
+*.yaml
+*.md
+postman
