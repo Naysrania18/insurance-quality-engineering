@@ -15,6 +15,9 @@ export interface Db extends Queryable {
 
 export function pgDb(connectionString: string): Db {
   const pool = new pg.Pool({ connectionString, max: 10 });
+  // Without this handler an idle connection reset (DB restart, network cut) is an unhandled 'error'
+  // event that crashes the process. Found by the Toxiproxy resilience tests.
+  pool.on('error', (err) => console.error('[db] idle client error:', err.message));
   return {
     query: (sql, params) => pool.query(sql, params as any[]) as any,
     exec: async (sql) => {
