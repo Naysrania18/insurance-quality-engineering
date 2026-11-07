@@ -2,7 +2,7 @@
 
 - [x] Stage 1 - Setup (environment checked: Docker not installed locally, CI on GitHub Actions is the Docker host)
 - [x] Stage 2 - System under test (services, DB schema, events, UI, OpenAPI, compose, seed, planted defects)
-- [ ] Stage 3 - Docs (strategy, risk plan, acceptance criteria, release report, defects, RCA, testability, mentoring, jd-skills-map)
+- [x] Stage 3 - Docs (strategy, risk plan, acceptance criteria, release report, defects, RCA, testability, mentoring, jd-skills-map)
 - [x] Stage 4A - Unit tests
 - [x] Stage 4B - API tests (Playwright API + Newman)
 - [x] Stage 4C - Pact contract tests
@@ -14,8 +14,8 @@
 - [x] Stage 4I (scripts; run in CI) - k6 performance
 - [x] Stage 4J (tests; run in CI) - Toxiproxy resilience
 - [x] Stage 4K - AI-assisted testing tool
-- [ ] Stage 5 - CI/CD + quality gates
-- [ ] Stage 6 - Self-check loop
-- [ ] Stage 7 - README, LICENSE, lint config
-- [ ] Stage 8 - Safety check + publish
+- [x] Stage 5 - CI/CD + quality gates
+- [x] Stage 6 (local checks + repeated CI runs as Docker host) - Self-check loop
+- [x] Stage 7 - README, LICENSE, lint config
+- [x] Stage 8 - Safety check + publish
 - [ ] Stage 9 - Final report
