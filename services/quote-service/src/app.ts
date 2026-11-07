@@ -83,7 +83,8 @@ export function createQuoteApp(db: Db) {
   });
 
   app.get('/risks', async (req, res) => {
-    const status = typeof req.query.status === 'string' ? req.query.status : null;
+    const status =
+      z.enum(['SUBMITTED', 'QUOTED', 'BOUND']).optional().parse(req.query.status) ?? null;
     const { rows } = await db.query(
       `SELECT * FROM risks WHERE ($1::text IS NULL OR status = $1) ORDER BY created_at DESC LIMIT 100`,
       [status],

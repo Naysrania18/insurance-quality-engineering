@@ -6,23 +6,29 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 
 const read = (f: string) => (existsSync(f) ? readFileSync(f, 'utf8') : null);
 
-function junit(file: string) {
-  const xml = read(file);
-  if (!xml) return null;
-  const head = /<testsuites[^>]*>/.exec(xml)?.[0] ?? '';
-  const num = (attr: string) => Number(new RegExp(`${attr}="(\\d+)"`).exec(head)?.[1] ?? 0);
-  return {
-    tests: num('tests'),
-    failures: num('failures') + num('errors'),
-    skipped: num('skipped'),
-  };
+function junit(pattern: RegExp) {
+  const files = existsSync('reports') ? readdirSync('reports').filter((f) => pattern.test(f)) : [];
+  if (files.length === 0) return null;
+  const total = { tests: 0, failures: 0, skipped: 0 };
+  for (const f of files) {
+    const head = /<testsuites[^>]*>/.exec(readFileSync(`reports/${f}`, 'utf8'))?.[0] ?? '';
+    const num = (attr: string) => Number(new RegExp(` ${attr}="([0-9]+)"`).exec(head)?.[1] ?? 0);
+    total.tests += num('tests');
+    total.failures += num('failures') + num('errors');
+    total.skipped += num('skipped');
+  }
+  return total;
 }
 
-const suites: [string, string][] = [
-  ['Unit (Vitest)', 'reports/junit-unit.xml'],
-  ['API + E2E (Playwright)', 'reports/junit-playwright.xml'],
-  ['Postman (Newman)', 'reports/junit-newman.xml'],
-  ['SQL, events, migration, contract, AI tool (Vitest)', 'reports/junit-integration.xml'],
+const suites: [string, RegExp][] = [
+  ['Unit (Vitest)', /^junit-unit\.xml$/],
+  ['API + E2E (Playwright)', /^junit-playwright\.xml$/],
+  ['Postman (Newman)', /^junit-newman\.xml$/],
+  [
+    'SQL, events, migration, contract, AI tool (Vitest)',
+    /^junit-(sql|events|migration|contract|ai)\.xml$/,
+  ],
+  ['Resilience (Toxiproxy)', /^junit-resilience\.xml$/],
 ];
 
 const rows = suites.map(([name, file]) => {

@@ -75,8 +75,16 @@ test.describe('quote-service: risks', () => {
     request,
   }) => {
     const res = await request.get(`${quote}/risks`, { params: { status: "SUBMITTED' OR '1'='1" } });
-    expect(res.status()).toBe(200);
-    expect(await res.json()).toEqual([]); // parameterised: treated as a literal, matches nothing
+    expect(res.status()).toBe(400); // allow-listed enum: rejected, never reaches SQL
+    expect((await res.json()).error.code).toBe('validation_error');
+  });
+
+  // Found by the OWASP ZAP scan: a NUL byte in the query string used to reach Postgres and return 500.
+  test('rejects a NUL byte in a query parameter with 400, not 500 @regression', async ({
+    request,
+  }) => {
+    const res = await request.get(`${quote}/risks?status=%00`);
+    expect(res.status()).toBe(400);
   });
 });
 
