@@ -90,10 +90,9 @@ export async function seedDatabase(
 // CLI: `npm run seed` (requires DATABASE_URL, schema already applied)
 if (process.argv[1]?.replace(/\\/g, '/').endsWith('db/seed/seed.ts')) {
   if (!process.env.DATABASE_URL) {
+    console.error('DATABASE_URL is required, e.g. postgres://demo:demo@localhost:5432/insurance');
     console.error(
-      'DATABASE_URL is required, e.g. postgres://demo:demo@localhost:5432/insurance (start the stack with docker compose first).
-' +
-        'Tip: `npm run dev` seeds its own in-process database automatically.',
+      'Start the stack with docker compose first. `npm run dev` seeds its own database.',
     );
     process.exit(2);
   }
