@@ -118,10 +118,11 @@ Snippet from a real CI run ([docs/release-readiness-report.md](docs/release-read
 
 ```
 | Unit (Vitest)                    | PASS | 35 | 0 | 0 |
-| API + E2E (Playwright)           | PASS | 46 | 0 | 0 |
+| API + E2E (Playwright)           | PASS | 47 | 0 | 0 |
+| Resilience (Toxiproxy)           | PASS |  5 | 0 | 0 |
 Coverage: lines 100%, branches 100%, functions 100%
-k6:   load p95 7 ms | stress p95 64 ms | spike p95 126 ms | 0% errors
-ZAP:  0 High, 0 Medium, 4 Low, 6 Informational (all triaged in docs/security-triage.md)
+k6:   load p95 6 ms | stress p95 49 ms | spike p95 94 ms | 0% errors
+ZAP:  0 High, 0 Medium, 0 Low, 6 Informational (triaged in docs/security-triage.md)
 Migration: 201 legacy rows -> 198 migrated + 3 quarantined, 0 field differences
 ```
 

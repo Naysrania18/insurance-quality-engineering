@@ -17,6 +17,16 @@ Reports are written to `reports/zap/` (HTML, JSON, Markdown) and summarised in `
 | policy | 0 | 0 | 1 | 2 |
 | claims | 0 | 0 | 1 | 2 |
 
+## Result after fixing S1 and S2 (re-scan in CI)
+
+| Service | High | Medium | Low | Informational |
+| --- | ---: | ---: | ---: | ---: |
+| quote | 0 | 0 | 0 | 2 |
+| policy | 0 | 0 | 0 | 2 |
+| claims | 0 | 0 | 0 | 2 |
+
+Only the two expected Informational findings (S3, S4) remain.
+
 ## Triage of each finding
 
 | # | Finding (plugin) | Risk | Service | Verdict | Action |
