@@ -15,7 +15,7 @@ import { HttpPolicyClient } from '../../services/claims-service/src/policy-clien
 const PACT_DIR = path.resolve('pacts');
 const POLICY_ID = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
 const MISSING_ID = '00000000-0000-4000-8000-000000000000';
-const { like, string, integer, regex } = MatchersV3;
+const { like, string, integer } = MatchersV3;
 
 describe('consumer: claims-service -> policy-service', () => {
   const pact = new PactV4({
@@ -32,7 +32,7 @@ describe('consumer: claims-service -> policy-service', () => {
       .uponReceiving('a request for an existing policy')
       .withRequest('GET', `/policies/${POLICY_ID}`, (b) => b.headers({ Accept: 'application/json' }))
       .willRespondWith(200, (b) =>
-        b.headers({ 'Content-Type': regex(/application\/json/, 'application/json; charset=utf-8') }).jsonBody({
+        b.headers({ 'Content-Type': 'application/json; charset=utf-8' }).jsonBody({
           id: string(POLICY_ID),
           policyRef: string('POL-ABC12345'),
           status: string('BOUND'),
@@ -54,7 +54,7 @@ describe('consumer: claims-service -> policy-service', () => {
       .withRequest('GET', `/policies/${MISSING_ID}`, (b) => b.headers({ Accept: 'application/json' }))
       .willRespondWith(404, (b) =>
         b
-          .headers({ 'Content-Type': regex(/application\/json/, 'application/json; charset=utf-8') })
+          .headers({ 'Content-Type': 'application/json; charset=utf-8' })
           .jsonBody({ error: like({ code: 'policy_not_found', message: 'Policy not found' }) }),
       )
       .executeTest(async (mock) => {
