@@ -1,0 +1,438 @@
+{
+  "info": {
+    "name": "Insurance platform - API regression (demo)",
+    "description": "End-to-end API journey across quote, policy and claims services. Run with Newman: npm run test:newman",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 Health checks",
+      "request": {
+        "method": "GET",
+        "url": "{{quote_url}}/health"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('quote-service is healthy', () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().status).to.eql('ok');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 List brokers",
+      "request": {
+        "method": "GET",
+        "url": "{{quote_url}}/brokers"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('returns seeded brokers', () => {",
+              "  pm.response.to.have.status(200);",
+              "  const brokers = pm.response.json();",
+              "  pm.expect(brokers).to.be.an('array').that.is.not.empty;",
+              "  pm.collectionVariables.set('brokerId', brokers[0].id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Submit risk (valid)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{quote_url}}/risks",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"brokerId\":\"{{brokerId}}\",\"riskType\":\"marine_cargo\",\"insuredValueCents\":25000000,\"description\":\"Newman: containerised machinery\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('risk is created as SUBMITTED', () => {",
+              "  pm.response.to.have.status(201);",
+              "  const risk = pm.response.json();",
+              "  pm.expect(risk.status).to.eql('SUBMITTED');",
+              "  pm.collectionVariables.set('riskId', risk.id);",
+              "});",
+              "pm.test('response time is acceptable', () => pm.expect(pm.response.responseTime).to.be.below(1000));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Submit risk (below appetite)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{quote_url}}/risks",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"brokerId\":\"{{brokerId}}\",\"riskType\":\"marine_cargo\",\"insuredValueCents\":100,\"description\":\"too small\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('is rejected with a validation error', () => {",
+              "  pm.response.to.have.status(400);",
+              "  pm.expect(pm.response.json().error.code).to.eql('validation_error');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Quote the risk",
+      "request": {
+        "method": "POST",
+        "url": "{{quote_url}}/risks/{{riskId}}/quote"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('premium is 0.80% of 250,000.00 = 2,000.00', () => {",
+              "  pm.response.to.have.status(201);",
+              "  const q = pm.response.json();",
+              "  pm.expect(q.premiumCents).to.eql(200000);",
+              "  pm.collectionVariables.set('quoteId', q.id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Quote again (conflict)",
+      "request": {
+        "method": "POST",
+        "url": "{{quote_url}}/risks/{{riskId}}/quote"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('a risk cannot be quoted twice', () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Bind the quote",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{policy_url}}/policies",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"quoteId\":\"{{quoteId}}\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('policy is bound with a 100% co-insurance panel', () => {",
+              "  pm.response.to.have.status(201);",
+              "  const p = pm.response.json();",
+              "  pm.expect(p.status).to.eql('BOUND');",
+              "  pm.expect(p.shares.reduce((s, x) => s + x.bps, 0)).to.eql(10000);",
+              "  pm.expect(p.totalPremiumCents).to.eql(200000);",
+              "  pm.collectionVariables.set('policyId', p.id);",
+              "  pm.collectionVariables.set('sumInsured', p.sumInsuredCents);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Bind again (conflict)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{policy_url}}/policies",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"quoteId\":\"{{quoteId}}\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('a quote cannot be bound twice', () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Get policy",
+      "request": {
+        "method": "GET",
+        "url": "{{policy_url}}/policies/{{policyId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('policy has the expected shape', () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.response.to.have.jsonSchema({",
+              "    type: 'object',",
+              "    required: ['id', 'policyRef', 'status', 'sumInsuredCents', 'totalPremiumCents', 'shares'],",
+              "    properties: { shares: { type: 'array', minItems: 1 } }",
+              "  });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Notify claim",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{claims_url}}/claims",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"policyId\":\"{{policyId}}\",\"lossDate\":\"2026-01-12\",\"amountClaimedCents\":1500000,\"description\":\"Newman claim\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('claim is NOTIFIED', () => {",
+              "  pm.response.to.have.status(201);",
+              "  pm.expect(pm.response.json().status).to.eql('NOTIFIED');",
+              "  pm.collectionVariables.set('claimId', pm.response.json().id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Notify claim above sum insured",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{claims_url}}/claims",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"policyId\":\"{{policyId}}\",\"lossDate\":\"2026-01-12\",\"amountClaimedCents\":99999999999,\"description\":\"too big\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('claims above the sum insured are rejected', () => pm.response.to.have.status(422));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 Settle before assessment (conflict)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{claims_url}}/claims/{{claimId}}/settle",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"settledCents\":100}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('illegal transition is refused', () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 Assess claim",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{claims_url}}/claims/{{claimId}}/assess",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"assessedCents\":1200000}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('claim is ASSESSED', () => {",
+              "  pm.response.to.have.status(200);",
+              "  pm.expect(pm.response.json().status).to.eql('ASSESSED');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 Settle claim",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{claims_url}}/claims/{{claimId}}/settle",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"settledCents\":1200000}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('claim is SETTLED for the assessed amount', () => {",
+              "  pm.response.to.have.status(200);",
+              "  const c = pm.response.json();",
+              "  pm.expect(c.status).to.eql('SETTLED');",
+              "  pm.expect(c.settledCents).to.eql(1200000);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 Policy reflects settlement (eventually)",
+      "request": {
+        "method": "GET",
+        "url": "{{policy_url}}/policies/{{policyId}}"
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// give the asynchronous event projection time to run before each (re)try",
+              "setTimeout(() => {}, 400);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Events are asynchronous: retry this request (with a short delay) until the projection catches up.",
+              "const p = pm.response.json();",
+              "const attempts = Number(pm.collectionVariables.get('attempts') || 0);",
+              "if (p.claimsPaidCents !== 1200000 && attempts < 20) {",
+              "  pm.collectionVariables.set('attempts', attempts + 1);",
+              "  postman.setNextRequest('15 Policy reflects settlement (eventually)');",
+              "} else {",
+              "  pm.test('claims_paid converges to the settled amount', () => pm.expect(p.claimsPaidCents).to.eql(1200000));",
+              "  pm.test('no open claims remain', () => pm.expect(p.openClaims).to.eql(0));",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "variable": []
+}
