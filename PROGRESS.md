@@ -4,16 +4,16 @@
 - [x] Stage 2 - System under test (services, DB schema, events, UI, OpenAPI, compose, seed, planted defects)
 - [ ] Stage 3 - Docs (strategy, risk plan, acceptance criteria, release report, defects, RCA, testability, mentoring, jd-skills-map)
 - [x] Stage 4A - Unit tests
-- [ ] Stage 4B - API tests (Playwright API + Newman)
-- [ ] Stage 4C - Pact contract tests
-- [ ] Stage 4D - UI/E2E Playwright
+- [x] Stage 4B - API tests (Playwright API + Newman)
+- [x] Stage 4C - Pact contract tests
+- [x] Stage 4D - UI/E2E Playwright
 - [x] Stage 4E - SQL validation
 - [x] Stage 4F - Event-driven tests
-- [ ] Stage 4G - Data migration
+- [x] Stage 4G - Data migration
 - [ ] Stage 4H - ZAP security
 - [ ] Stage 4I - k6 performance
 - [ ] Stage 4J - Toxiproxy resilience
-- [ ] Stage 4K - AI-assisted testing tool
+- [x] Stage 4K - AI-assisted testing tool
 - [ ] Stage 5 - CI/CD + quality gates
 - [ ] Stage 6 - Self-check loop
 - [ ] Stage 7 - README, LICENSE, lint config

@@ -1,6 +1,10 @@
 import { createHash } from 'node:crypto';
 import type { Db } from '../../shared/src/db.js';
-import { toTarget, type LegacyRow, type MigrationStats } from '../../db/migrations/migrate-v1-to-v2.js';
+import {
+  toTarget,
+  type LegacyRow,
+  type MigrationStats,
+} from '../../db/migrations/migrate-v1-to-v2.js';
 
 export interface FieldDiff {
   policyNo: string;
@@ -25,12 +29,25 @@ export interface Reconciliation {
   passed: boolean;
 }
 
-const line = (ref: string, status: string, sum: number, prem: number, panel: { insurer: string; bps: number }[]) =>
-  `${ref}|${status}|${sum}|${prem}|${[...panel].sort((a, b) => a.insurer.localeCompare(b.insurer)).map((m) => `${m.insurer}:${m.bps}`).join(';')}`;
+const line = (
+  ref: string,
+  status: string,
+  sum: number,
+  prem: number,
+  panel: { insurer: string; bps: number }[],
+) =>
+  `${ref}|${status}|${sum}|${prem}|${[...panel]
+    .sort((a, b) => a.insurer.localeCompare(b.insurer))
+    .map((m) => `${m.insurer}:${m.bps}`)
+    .join(';')}`;
 
 export async function reconcile(db: Db, stats: MigrationStats): Promise<Reconciliation> {
-  const legacy = (await db.query<LegacyRow>('SELECT * FROM legacy_policies ORDER BY policy_no, row_id')).rows;
-  const rejects = (await db.query('SELECT policy_no, reason FROM migration_rejects ORDER BY policy_no')).rows as any[];
+  const legacy = (
+    await db.query<LegacyRow>('SELECT * FROM legacy_policies ORDER BY policy_no, row_id')
+  ).rows;
+  const rejects = (
+    await db.query('SELECT policy_no, reason FROM migration_rejects ORDER BY policy_no')
+  ).rows as any[];
   const rejectedRowIds = new Set(
     (await db.query('SELECT row_id FROM migration_rejects')).rows.map((r: any) => Number(r.row_id)),
   );
@@ -51,15 +68,24 @@ export async function reconcile(db: Db, stats: MigrationStats): Promise<Reconcil
     legacy: legacy.length,
     migrated: migrated.length,
     rejected: rejects.length,
-    balanced: legacy.length === migrated.length + rejects.length && stats.migrated === migrated.length,
+    balanced:
+      legacy.length === migrated.length + rejects.length && stats.migrated === migrated.length,
   };
 
   // 2. Checksums: totals and an order-independent hash of normalised key fields.
   const expected = expectedRows.map((r) => toTarget(r));
-  const legacyLines = expected.map((t) => line(t.policyRef, t.status, t.sumInsuredCents, t.premiumCents, t.panel)).sort();
+  const legacyLines = expected
+    .map((t) => line(t.policyRef, t.status, t.sumInsuredCents, t.premiumCents, t.panel))
+    .sort();
   const migratedLines = migrated
     .map((m) =>
-      line(m.policy_ref, m.status, Number(m.sum_insured_cents), Number(m.total_premium_cents), typeof m.panel === 'string' ? JSON.parse(m.panel) : m.panel),
+      line(
+        m.policy_ref,
+        m.status,
+        Number(m.sum_insured_cents),
+        Number(m.total_premium_cents),
+        typeof m.panel === 'string' ? JSON.parse(m.panel) : m.panel,
+      ),
     )
     .sort();
   const hash = (xs: string[]) => createHash('sha256').update(xs.join('\n')).digest('hex');
@@ -84,17 +110,27 @@ export async function reconcile(db: Db, stats: MigrationStats): Promise<Reconcil
   for (const t of expected) {
     const m = byRef.get(t.policyRef);
     if (!m) {
-      fieldDiffs.push({ policyNo: t.policyRef, field: 'record', expected: 'present', actual: 'missing' });
+      fieldDiffs.push({
+        policyNo: t.policyRef,
+        field: 'record',
+        expected: 'present',
+        actual: 'missing',
+      });
       continue;
     }
     const check = (field: string, e: unknown, a: unknown) => {
-      if (JSON.stringify(e) !== JSON.stringify(a)) fieldDiffs.push({ policyNo: t.policyRef, field, expected: e, actual: a });
+      if (JSON.stringify(e) !== JSON.stringify(a))
+        fieldDiffs.push({ policyNo: t.policyRef, field, expected: e, actual: a });
     };
     check('status', t.status, m.status);
     check('sum_insured_cents', t.sumInsuredCents, Number(m.sum_insured_cents));
     check('total_premium_cents', t.premiumCents, Number(m.total_premium_cents));
-    const panel = (typeof m.panel === 'string' ? JSON.parse(m.panel) : m.panel) as { insurer: string; bps: number }[];
-    const norm = (p: { insurer: string; bps: number }[]) => [...p].sort((a, b) => a.insurer.localeCompare(b.insurer));
+    const panel = (typeof m.panel === 'string' ? JSON.parse(m.panel) : m.panel) as {
+      insurer: string;
+      bps: number;
+    }[];
+    const norm = (p: { insurer: string; bps: number }[]) =>
+      [...p].sort((a, b) => a.insurer.localeCompare(b.insurer));
     check('insurer_shares', norm(t.panel), norm(panel));
   }
 
@@ -107,7 +143,12 @@ export async function reconcile(db: Db, stats: MigrationStats): Promise<Reconcil
     )
   ).rows as any[];
   for (const r of shareMismatch) {
-    fieldDiffs.push({ policyNo: r.policy_ref, field: 'shares_sum', expected: 'premium', actual: 'mismatch' });
+    fieldDiffs.push({
+      policyNo: r.policy_ref,
+      field: 'shares_sum',
+      expected: 'premium',
+      actual: 'mismatch',
+    });
   }
 
   return {
@@ -147,7 +188,17 @@ Migration run stats: read ${stats.read}, migrated ${stats.migrated}, rejected ${
 Fields compared per policy: status, sum insured, premium, insurer names and shares, share amounts sum to premium.
 
 Differences found: **${r.fieldDiffs.length}**
-${r.fieldDiffs.length ? r.fieldDiffs.slice(0, 20).map((d) => `- ${d.policyNo} ${d.field}: expected ${JSON.stringify(d.expected)}, got ${JSON.stringify(d.actual)}`).join('\n') : '_None._'}
+${
+  r.fieldDiffs.length
+    ? r.fieldDiffs
+        .slice(0, 20)
+        .map(
+          (d) =>
+            `- ${d.policyNo} ${d.field}: expected ${JSON.stringify(d.expected)}, got ${JSON.stringify(d.actual)}`,
+        )
+        .join('\n')
+    : '_None._'
+}
 
 ## 4. Rejected records (quarantined, not lost)
 | Policy no | Reason |

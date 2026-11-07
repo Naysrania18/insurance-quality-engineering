@@ -23,7 +23,9 @@ beforeAll(async () => {
   await j.assess(claim.body.id, 40_000_00);
   await j.settle(claim.body.id, 40_000_00);
   // ... and one left part-way.
-  const open = await j.notifyClaim(rounding.policy.id, (c) => c.forAmount(500_00).lostOn('2026-02-01'));
+  const open = await j.notifyClaim(rounding.policy.id, (c) =>
+    c.forAmount(500_00).lostOn('2026-02-01'),
+  );
   await j.assess(open.body.id, 400_00);
   await t.flush();
 });
@@ -85,9 +87,12 @@ describe('audit trail', () => {
   });
 
   // KNOWN DEFECT DEF-003: docs/defects/DEF-003-missing-settlement-audit.md
-  it.fails('DEF-003: has an audit entry for every state a claim has passed through (incl. SETTLED)', async () => {
-    expect(await offenders(checks.claimsMissingAuditForState)).toEqual([]);
-  });
+  it.fails(
+    'DEF-003: has an audit entry for every state a claim has passed through (incl. SETTLED)',
+    async () => {
+      expect(await offenders(checks.claimsMissingAuditForState)).toEqual([]);
+    },
+  );
 });
 
 describe('duplicates', () => {

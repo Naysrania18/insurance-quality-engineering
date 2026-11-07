@@ -19,6 +19,7 @@ interface Fixtures {
 
 /** Custom fixtures: API journey helper for fast setup, and page objects for UI steps. */
 export const test = base.extend<Fixtures>({
+  // eslint-disable-next-line no-empty-pattern
   journey: async ({}, use) => {
     await use(new Journey(serviceUrls));
   },

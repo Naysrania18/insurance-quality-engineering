@@ -42,7 +42,10 @@ export async function loadLegacyData(db: Db, count = 200): Promise<void> {
     );
     if (i === 13) {
       // overwrite with shares that total 99.99%
-      await db.query(`UPDATE legacy_policies SET share3 = 33.33, insurer3 = $2 WHERE policy_no = $1`, [policyNo, names[2]]);
+      await db.query(
+        `UPDATE legacy_policies SET share3 = 33.33, insurer3 = $2 WHERE policy_no = $1`,
+        [policyNo, names[2]],
+      );
     }
   }
   // duplicate of LEG-000007 (a second row with the same policy number)

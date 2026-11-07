@@ -21,7 +21,10 @@ function say(text, kind = 'ok') {
 }
 
 function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  return String(s).replace(
+    /[&<>"']/g,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
+  );
 }
 
 async function guarded(fn) {
@@ -66,13 +69,17 @@ async function refresh() {
     $('quoted-body').innerHTML = allQuotes
       .filter((q) => q.status === 'QUOTED')
       .map(
-        (q) => `<tr data-testid="quote-row-${q.id}"><td>${q.id.slice(0, 8)}</td><td>${usd(q.premiumCents)}</td>
+        (
+          q,
+        ) => `<tr data-testid="quote-row-${q.id}"><td>${q.id.slice(0, 8)}</td><td>${usd(q.premiumCents)}</td>
           <td><button data-testid="bind-btn-${q.id}" data-quote="${q.id}" class="bind-btn">Bind</button></td></tr>`,
       )
       .join('');
     $('policies-body').innerHTML = policies
       .map(
-        (p) => `<tr data-testid="policy-row-${p.id}"><td>${p.policyRef}</td><td>${usd(p.totalPremiumCents)}</td>
+        (
+          p,
+        ) => `<tr data-testid="policy-row-${p.id}"><td>${p.policyRef}</td><td>${usd(p.totalPremiumCents)}</td>
           <td>${p.shares.map((s) => `${escapeHtml(s.insurer)} ${(s.bps / 100).toFixed(2)}% = ${usd(s.amountCents)}`).join('<br>')}</td></tr>`,
       )
       .join('');

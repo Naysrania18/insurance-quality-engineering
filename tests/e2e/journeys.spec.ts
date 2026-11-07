@@ -60,7 +60,9 @@ test.describe('full journey @e2e', () => {
     await test.step('underwriter binds the quote; premium is split across the panel', async () => {
       await underwriterPage.bindFirstQuote();
       await expect(underwriterPage.message).toContainText('Policy bound');
-      policyRef = ((await underwriterPage.message.textContent()) ?? '').replace('Policy bound: ', '').trim();
+      policyRef = ((await underwriterPage.message.textContent()) ?? '')
+        .replace('Policy bound: ', '')
+        .trim();
       const row = underwriterPage.policyRows().filter({ hasText: policyRef });
       await expect(row).toContainText('Alder Mutual');
       await expect(row).toContainText('Cobalt Underwriters');
@@ -69,7 +71,11 @@ test.describe('full journey @e2e', () => {
     await test.step('a claim is notified against the policy', async () => {
       await claimsPage.open();
       await claimsPage.selectPolicyByRef(policyRef);
-      await claimsPage.notify({ lossDate: '2026-01-10', amount: '15000', description: 'Container water damage' });
+      await claimsPage.notify({
+        lossDate: '2026-01-10',
+        amount: '15000',
+        description: 'Container water damage',
+      });
       await expect(claimsPage.message).toContainText('Claim notified');
       await expect(claimsPage.claimRows().first()).toContainText('NOTIFIED');
     });
@@ -86,7 +92,6 @@ test.describe('full journey @e2e', () => {
   // KNOWN DEFECT DEF-001 (docs/defects/DEF-001-share-rounding.md): the shares shown to the user for a
   // 10,000.70 risk add up to 80.02, not the 80.01 premium. Expected to fail until the defect is fixed.
   test('DEF-001: displayed insurer shares add up to the premium @e2e @regression', async ({
-    page,
     brokerPage,
     underwriterPage,
   }) => {
@@ -98,11 +103,15 @@ test.describe('full journey @e2e', () => {
     await underwriterPage.quoteRisk(description);
     await underwriterPage.bindFirstQuote();
     await expect(underwriterPage.message).toContainText('Policy bound');
-    const policyRef = ((await underwriterPage.message.textContent()) ?? '').replace('Policy bound: ', '').trim();
+    const policyRef = ((await underwriterPage.message.textContent()) ?? '')
+      .replace('Policy bound: ', '')
+      .trim();
     const row = underwriterPage.policyRows().filter({ hasText: policyRef });
     await expect(row).toBeVisible();
     const text = (await row.innerText()).replace(policyRef, '');
-    const amounts = [...text.matchAll(/= (\d+\.\d{2})/g)].map((m) => Math.round(Number(m[1]) * 100));
+    const amounts = [...text.matchAll(/= (\d+\.\d{2})/g)].map((m) =>
+      Math.round(Number(m[1]) * 100),
+    );
     const premium = Math.round(Number((await row.locator('td').nth(1).innerText()).trim()) * 100);
     expect(premium).toBe(8001);
     expect(amounts.reduce((a, b) => a + b, 0)).toBe(premium);

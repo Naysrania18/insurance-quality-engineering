@@ -4,7 +4,10 @@ import { ZodError } from 'zod';
 import { ApiError } from './errors.js';
 
 /** Express app with JSON parsing, security headers, /health, /openapi.yaml and error mapping. */
-export function createBaseApp(service: string, openapiFile: URL): { app: Express; finish: () => void } {
+export function createBaseApp(
+  service: string,
+  openapiFile: URL,
+): { app: Express; finish: () => void } {
   const app = express();
   app.disable('x-powered-by');
   app.use((_req, res, next) => {

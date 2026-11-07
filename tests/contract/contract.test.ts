@@ -30,7 +30,9 @@ describe('consumer: claims-service -> policy-service', () => {
       .addInteraction()
       .given('a BOUND policy exists')
       .uponReceiving('a request for an existing policy')
-      .withRequest('GET', `/policies/${POLICY_ID}`, (b) => b.headers({ Accept: 'application/json' }))
+      .withRequest('GET', `/policies/${POLICY_ID}`, (b) =>
+        b.headers({ Accept: 'application/json' }),
+      )
       .willRespondWith(200, (b) =>
         b.headers({ 'Content-Type': 'application/json; charset=utf-8' }).jsonBody({
           id: string(POLICY_ID),
@@ -51,7 +53,9 @@ describe('consumer: claims-service -> policy-service', () => {
       .addInteraction()
       .given('no policy exists')
       .uponReceiving('a request for a policy that does not exist')
-      .withRequest('GET', `/policies/${MISSING_ID}`, (b) => b.headers({ Accept: 'application/json' }))
+      .withRequest('GET', `/policies/${MISSING_ID}`, (b) =>
+        b.headers({ Accept: 'application/json' }),
+      )
       .willRespondWith(404, (b) =>
         b
           .headers({ 'Content-Type': 'application/json; charset=utf-8' })
@@ -94,13 +98,19 @@ describe('provider: policy-service honours the pact', () => {
           const riskId = randomUUID();
           const quoteId = randomUUID();
           await db.query('DELETE FROM policies WHERE id = $1', [POLICY_ID]);
-          await db.query(`INSERT INTO brokers (id, name, email) VALUES ($1,'Pact Broker',$2)`, [brokerId, `${brokerId}@example.test`]);
+          await db.query(`INSERT INTO brokers (id, name, email) VALUES ($1,'Pact Broker',$2)`, [
+            brokerId,
+            `${brokerId}@example.test`,
+          ]);
           await db.query(
             `INSERT INTO risks (id, broker_id, risk_type, insured_value_cents, description, status)
              VALUES ($1,$2,'marine_cargo',25000000,'pact','BOUND')`,
             [riskId, brokerId],
           );
-          await db.query(`INSERT INTO quotes (id, risk_id, premium_cents, status) VALUES ($1,$2,200000,'ACCEPTED')`, [quoteId, riskId]);
+          await db.query(
+            `INSERT INTO quotes (id, risk_id, premium_cents, status) VALUES ($1,$2,200000,'ACCEPTED')`,
+            [quoteId, riskId],
+          );
           await db.query(
             `INSERT INTO policies (id, policy_ref, quote_id, status, sum_insured_cents, total_premium_cents)
              VALUES ($1,'POL-PACT0001',$2,'BOUND',25000000,200000)`,

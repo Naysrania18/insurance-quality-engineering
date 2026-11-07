@@ -5,23 +5,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Demo Commercial Insurance Platform</title>
     <style>
-      body { font-family: system-ui, sans-serif; margin: 0; background: #f4f6f8; color: #1d2733; }
-      header { background: #173a5e; color: #fff; padding: 12px 24px; }
-      header small { opacity: 0.8; }
-      nav { display: flex; gap: 8px; padding: 12px 24px; background: #fff; border-bottom: 1px solid #d8dee4; }
-      nav button { padding: 8px 16px; border: 1px solid #b8c2cc; background: #fff; cursor: pointer; border-radius: 4px; }
-      nav button.active { background: #173a5e; color: #fff; }
-      main { padding: 24px; max-width: 1000px; margin: 0 auto; }
-      section { display: none; background: #fff; padding: 16px 20px; border-radius: 6px; margin-bottom: 16px; }
-      section.active { display: block; }
-      label { display: block; margin: 8px 0 2px; font-size: 13px; }
-      input, select, textarea { padding: 6px; width: 320px; max-width: 100%; }
-      button.primary { margin-top: 12px; padding: 8px 16px; background: #1b7f4b; color: #fff; border: 0; border-radius: 4px; cursor: pointer; }
-      table { border-collapse: collapse; width: 100%; margin-top: 12px; font-size: 14px; }
-      th, td { border-bottom: 1px solid #e3e8ed; padding: 6px 8px; text-align: left; }
-      #message { padding: 10px 14px; border-radius: 4px; margin-bottom: 12px; display: none; }
-      #message.ok { display: block; background: #e3f6ea; }
-      #message.error { display: block; background: #fde7e7; }
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        background: #f4f6f8;
+        color: #1d2733;
+      }
+      header {
+        background: #173a5e;
+        color: #fff;
+        padding: 12px 24px;
+      }
+      header small {
+        opacity: 0.8;
+      }
+      nav {
+        display: flex;
+        gap: 8px;
+        padding: 12px 24px;
+        background: #fff;
+        border-bottom: 1px solid #d8dee4;
+      }
+      nav button {
+        padding: 8px 16px;
+        border: 1px solid #b8c2cc;
+        background: #fff;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+      nav button.active {
+        background: #173a5e;
+        color: #fff;
+      }
+      main {
+        padding: 24px;
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      section {
+        display: none;
+        background: #fff;
+        padding: 16px 20px;
+        border-radius: 6px;
+        margin-bottom: 16px;
+      }
+      section.active {
+        display: block;
+      }
+      label {
+        display: block;
+        margin: 8px 0 2px;
+        font-size: 13px;
+      }
+      input,
+      select,
+      textarea {
+        padding: 6px;
+        width: 320px;
+        max-width: 100%;
+      }
+      button.primary {
+        margin-top: 12px;
+        padding: 8px 16px;
+        background: #1b7f4b;
+        color: #fff;
+        border: 0;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin-top: 12px;
+        font-size: 14px;
+      }
+      th,
+      td {
+        border-bottom: 1px solid #e3e8ed;
+        padding: 6px 8px;
+        text-align: left;
+      }
+      #message {
+        padding: 10px 14px;
+        border-radius: 4px;
+        margin-bottom: 12px;
+        display: none;
+      }
+      #message.ok {
+        display: block;
+        background: #e3f6ea;
+      }
+      #message.error {
+        display: block;
+        background: #fde7e7;
+      }
     </style>
   </head>
   <body>
@@ -57,17 +134,36 @@
         <h2>Underwriter desk</h2>
         <h3>Risks awaiting a quote</h3>
         <table data-testid="submitted-risks">
-          <thead><tr><th>Risk</th><th>Type</th><th>Insured value</th><th></th></tr></thead>
+          <thead>
+            <tr>
+              <th>Risk</th>
+              <th>Type</th>
+              <th>Insured value</th>
+              <th></th>
+            </tr>
+          </thead>
           <tbody id="submitted-body"></tbody>
         </table>
         <h3>Quotes ready to bind</h3>
         <table data-testid="quoted-risks">
-          <thead><tr><th>Quote</th><th>Premium</th><th></th></tr></thead>
+          <thead>
+            <tr>
+              <th>Quote</th>
+              <th>Premium</th>
+              <th></th>
+            </tr>
+          </thead>
           <tbody id="quoted-body"></tbody>
         </table>
         <h3>Bound policies</h3>
         <table data-testid="policies">
-          <thead><tr><th>Policy</th><th>Premium</th><th>Insurer shares</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Policy</th>
+              <th>Premium</th>
+              <th>Insurer shares</th>
+            </tr>
+          </thead>
           <tbody id="policies-body"></tbody>
         </table>
       </section>
@@ -85,7 +181,16 @@
         <button class="primary" id="submit-claim" data-testid="submit-claim">Notify claim</button>
         <h3>Claims</h3>
         <table data-testid="claims-table">
-          <thead><tr><th>Claim</th><th>Status</th><th>Claimed</th><th>Assessed</th><th>Settled</th><th></th></tr></thead>
+          <thead>
+            <tr>
+              <th>Claim</th>
+              <th>Status</th>
+              <th>Claimed</th>
+              <th>Assessed</th>
+              <th>Settled</th>
+              <th></th>
+            </tr>
+          </thead>
           <tbody id="claims-body"></tbody>
         </table>
       </section>

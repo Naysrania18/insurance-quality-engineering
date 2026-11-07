@@ -96,7 +96,8 @@ export function createPolicyApp(db: Db) {
       });
       res.status(201).json(await loadPolicy(db, policyId));
     } catch (e) {
-      if (isUniqueViolation(e)) throw new ApiError(409, 'quote_not_bindable', 'Quote already bound');
+      if (isUniqueViolation(e))
+        throw new ApiError(409, 'quote_not_bindable', 'Quote already bound');
       throw e;
     }
   });

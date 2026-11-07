@@ -23,7 +23,10 @@ export function createWebApp(up: Upstreams): Express {
           body: hasBody ? (req.body as string) : undefined,
           signal: AbortSignal.timeout(10_000),
         });
-        res.status(upstream.status).type('application/json').send(await upstream.text());
+        res
+          .status(upstream.status)
+          .type('application/json')
+          .send(await upstream.text());
       } catch {
         res.status(502).json({ error: { code: 'bad_gateway', message: 'Upstream unavailable' } });
       }

@@ -30,7 +30,11 @@ export class HttpPolicyClient implements PolicyClient {
     }
     if (res.status === 404) return null;
     if (!res.ok) {
-      throw new ApiError(503, 'policy_service_unavailable', `Policy service returned ${res.status}`);
+      throw new ApiError(
+        503,
+        'policy_service_unavailable',
+        `Policy service returned ${res.status}`,
+      );
     }
     const p = (await res.json()) as PolicySummary;
     return {

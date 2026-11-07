@@ -22,7 +22,11 @@ const policySchema = {
       items: {
         type: 'object',
         required: ['insurer', 'bps', 'amountCents'],
-        properties: { insurer: { type: 'string' }, bps: { type: 'integer' }, amountCents: { type: 'integer' } },
+        properties: {
+          insurer: { type: 'string' },
+          bps: { type: 'integer' },
+          amountCents: { type: 'integer' },
+        },
       },
     },
   },
@@ -50,14 +54,41 @@ test.describe('policy-service: binding', () => {
       { insurer: 'Follow Insurer', bps: 3000 },
     ]);
     expect(res.status).toBe(201);
-    expect(res.body.shares.map((s: any) => s.insurer).sort()).toEqual(['Follow Insurer', 'Lead Insurer']);
+    expect(res.body.shares.map((s: any) => s.insurer).sort()).toEqual([
+      'Follow Insurer',
+      'Lead Insurer',
+    ]);
   });
 
   const badPanels: [string, { insurer: string; bps: number }[]][] = [
-    ['shares total 99.99%', [{ insurer: 'A', bps: 5000 }, { insurer: 'B', bps: 4999 }]],
-    ['shares total over 100%', [{ insurer: 'A', bps: 6000 }, { insurer: 'B', bps: 5000 }]],
-    ['duplicate insurer', [{ insurer: 'A', bps: 5000 }, { insurer: 'A', bps: 5000 }]],
-    ['zero share', [{ insurer: 'A', bps: 0 }, { insurer: 'B', bps: 10_000 }]],
+    [
+      'shares total 99.99%',
+      [
+        { insurer: 'A', bps: 5000 },
+        { insurer: 'B', bps: 4999 },
+      ],
+    ],
+    [
+      'shares total over 100%',
+      [
+        { insurer: 'A', bps: 6000 },
+        { insurer: 'B', bps: 5000 },
+      ],
+    ],
+    [
+      'duplicate insurer',
+      [
+        { insurer: 'A', bps: 5000 },
+        { insurer: 'A', bps: 5000 },
+      ],
+    ],
+    [
+      'zero share',
+      [
+        { insurer: 'A', bps: 0 },
+        { insurer: 'B', bps: 10_000 },
+      ],
+    ],
   ];
   for (const [name, panel] of badPanels) {
     test(`rejects a panel with ${name} @regression`, async () => {
@@ -156,12 +187,17 @@ test.describe('claims-service: lifecycle', () => {
   });
 
   test('returns 404 for an unknown claim @regression', async () => {
-    expect((await call(`${claimsUrl}/claims/55555555-5555-4555-8555-555555555555`)).status).toBe(404);
+    expect((await call(`${claimsUrl}/claims/55555555-5555-4555-8555-555555555555`)).status).toBe(
+      404,
+    );
   });
 
   // KNOWN DEFECT DEF-002 (docs/defects/DEF-002-duplicate-claims.md)
   test('DEF-002: rejects a duplicate claim (same policy, loss date, amount) @regression', async () => {
-    test.fail(true, 'DEF-002: no duplicate-claim check. See docs/defects/DEF-002-duplicate-claims.md');
+    test.fail(
+      true,
+      'DEF-002: no duplicate-claim check. See docs/defects/DEF-002-duplicate-claims.md',
+    );
     const { policy } = await journey.boundPolicy();
     expect((await journey.notifyClaim(policy.id)).status).toBe(201);
     expect((await journey.notifyClaim(policy.id)).status).toBe(409);

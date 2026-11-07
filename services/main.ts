@@ -28,7 +28,10 @@ async function main(): Promise<void> {
     await retry(() => startPolicyConsumers(db, bus));
   } else if (service === 'claims') {
     const bus = new RabbitBus(process.env.RABBITMQ_URL ?? 'amqp://localhost');
-    app = createClaimsApp(db, new HttpPolicyClient(process.env.POLICY_SERVICE_URL ?? 'http://localhost:3002'));
+    app = createClaimsApp(
+      db,
+      new HttpPolicyClient(process.env.POLICY_SERVICE_URL ?? 'http://localhost:3002'),
+    );
     startOutboxRelay(db, bus);
   } else {
     throw new Error(`Unknown SERVICE: ${service}`);

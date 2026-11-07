@@ -59,7 +59,8 @@ export function createQuoteApp(db: Db) {
       ]);
       res.status(201).json({ id, ...body });
     } catch (e) {
-      if (isUniqueViolation(e)) throw new ApiError(409, 'broker_exists', 'Broker email already exists');
+      if (isUniqueViolation(e))
+        throw new ApiError(409, 'broker_exists', 'Broker email already exists');
       throw e;
     }
   });

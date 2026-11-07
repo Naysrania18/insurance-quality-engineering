@@ -40,7 +40,8 @@ export function createClaimsApp(db: Db, policies: PolicyClient) {
     }
     const policy = await policies.getPolicy(body.policyId);
     if (!policy) throw new ApiError(404, 'policy_not_found', 'Policy not found');
-    if (policy.status !== 'BOUND') throw new ApiError(409, 'policy_not_active', 'Policy is not active');
+    if (policy.status !== 'BOUND')
+      throw new ApiError(409, 'policy_not_active', 'Policy is not active');
     if (body.amountClaimedCents > policy.sumInsuredCents) {
       throw new ApiError(422, 'claim_exceeds_sum_insured', 'Claim exceeds the sum insured');
     }
@@ -54,7 +55,14 @@ export function createClaimsApp(db: Db, policies: PolicyClient) {
       const r = await q.query(
         `INSERT INTO claims (id, claim_ref, policy_id, loss_date, amount_claimed_cents, description, status)
          VALUES ($1,$2,$3,$4,$5,$6,'NOTIFIED') RETURNING *`,
-        [id, shortRef('CLM'), body.policyId, body.lossDate, body.amountClaimedCents, body.description],
+        [
+          id,
+          shortRef('CLM'),
+          body.policyId,
+          body.lossDate,
+          body.amountClaimedCents,
+          body.description,
+        ],
       );
       await audit(q, 'claim', id, null, 'NOTIFIED');
       await enqueueEvent(q, 'ClaimNotified', {
@@ -95,7 +103,11 @@ export function createClaimsApp(db: Db, policies: PolicyClient) {
         throw new ApiError(409, 'invalid_transition', `Cannot assess a ${c.status} claim`);
       }
       if (body.assessedCents > Number(c.amount_claimed_cents)) {
-        throw new ApiError(422, 'assessment_exceeds_claim', 'Assessed amount exceeds amount claimed');
+        throw new ApiError(
+          422,
+          'assessment_exceeds_claim',
+          'Assessed amount exceeds amount claimed',
+        );
       }
       const u = await q.query(
         `UPDATE claims SET status = 'ASSESSED', assessed_cents = $2 WHERE id = $1 RETURNING *`,
@@ -118,7 +130,11 @@ export function createClaimsApp(db: Db, policies: PolicyClient) {
         throw new ApiError(409, 'invalid_transition', `Cannot settle a ${c.status} claim`);
       }
       if (body.settledCents > Number(c.assessed_cents)) {
-        throw new ApiError(422, 'settlement_exceeds_assessment', 'Settlement exceeds assessed amount');
+        throw new ApiError(
+          422,
+          'settlement_exceeds_assessment',
+          'Settlement exceeds assessed amount',
+        );
       }
       const u = await q.query(
         `UPDATE claims SET status = 'SETTLED', settled_cents = $2 WHERE id = $1 RETURNING *`,

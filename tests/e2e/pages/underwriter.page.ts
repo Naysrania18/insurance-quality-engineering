@@ -20,7 +20,11 @@ export class UnderwriterPage {
 
   /** Bind the quote created most recently (newest first in the list). */
   async bindFirstQuote() {
-    await this.page.getByTestId('quoted-risks').getByRole('button', { name: 'Bind' }).first().click();
+    await this.page
+      .getByTestId('quoted-risks')
+      .getByRole('button', { name: 'Bind' })
+      .first()
+      .click();
   }
 
   policyRows(): Locator {

@@ -82,7 +82,11 @@ export class Journey {
   }
   async submitRisk(overrides: (b: RiskBuilder) => RiskBuilder = (b) => b) {
     const brokerId = await this.broker();
-    return call(`${this.u.quote}/risks`, 'POST', overrides(new RiskBuilder().withBroker(brokerId)).build());
+    return call(
+      `${this.u.quote}/risks`,
+      'POST',
+      overrides(new RiskBuilder().withBroker(brokerId)).build(),
+    );
   }
   async quote(riskId: string) {
     return call(`${this.u.quote}/risks/${riskId}/quote`, 'POST');
@@ -99,7 +103,11 @@ export class Journey {
     return { risk: risk.body, quote: quote.body, policy: policy.body };
   }
   async notifyClaim(policyId: string, overrides: (b: ClaimBuilder) => ClaimBuilder = (b) => b) {
-    return call(`${this.u.claims}/claims`, 'POST', overrides(new ClaimBuilder().forPolicy(policyId)).build());
+    return call(
+      `${this.u.claims}/claims`,
+      'POST',
+      overrides(new ClaimBuilder().forPolicy(policyId)).build(),
+    );
   }
   async assess(claimId: string, assessedCents: number) {
     return call(`${this.u.claims}/claims/${claimId}/assess`, 'POST', { assessedCents });
@@ -125,5 +133,7 @@ export async function waitFor<T>(
     }
     await new Promise((r) => setTimeout(r, intervalMs));
   }
-  throw new Error(`Timed out after ${timeoutMs}ms waiting for ${label}${last ? `: ${String(last)}` : ''}`);
+  throw new Error(
+    `Timed out after ${timeoutMs}ms waiting for ${label}${last ? `: ${String(last)}` : ''}`,
+  );
 }

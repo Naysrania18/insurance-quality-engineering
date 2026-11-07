@@ -12,6 +12,8 @@ const stats = await migrateV1ToV2(db);
 const rec = await reconcile(db, stats);
 mkdirSync('reports', { recursive: true });
 writeFileSync('reports/migration-report.md', renderReport(stats, rec));
-console.log(`Migration reconciliation: ${rec.passed ? 'PASS' : 'FAIL'} (see reports/migration-report.md)`);
+console.log(
+  `Migration reconciliation: ${rec.passed ? 'PASS' : 'FAIL'} (see reports/migration-report.md)`,
+);
 await db.close();
 process.exit(rec.passed ? 0 : 1);

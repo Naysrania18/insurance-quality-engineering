@@ -29,15 +29,20 @@ if (process.env.NEWMAN_EXTERNAL !== '1') {
 const failures = await new Promise<number>((resolve, reject) => {
   newman.run(
     {
-      collection: JSON.parse(readFileSync('tests/postman/insurance-platform.postman_collection.json', 'utf8')),
+      collection: JSON.parse(
+        readFileSync('tests/postman/insurance-platform.postman_collection.json', 'utf8'),
+      ),
       environment: env,
       reporters: ['cli', 'junit', 'htmlextra'],
       reporter: {
         junit: { export: 'reports/junit-newman.xml' },
-        htmlextra: { export: 'reports/newman-report.html', title: 'Insurance platform API regression' },
+        htmlextra: {
+          export: 'reports/newman-report.html',
+          title: 'Insurance platform API regression',
+        },
       },
     },
-    (err, summary) => (err ? reject(err) : resolve(summary.run.failures.length)),
+    (err: Error | null, summary: any) => (err ? reject(err) : resolve(summary.run.failures.length)),
   );
 });
 

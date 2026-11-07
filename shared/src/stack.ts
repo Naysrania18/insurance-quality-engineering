@@ -45,7 +45,12 @@ export async function startStack(
   const servers = [web, quote, policy, claims];
 
   return {
-    urls: { web: `http://127.0.0.1:${portOf(web)}`, quote: quoteUrl, policy: policyUrl, claims: claimsUrl },
+    urls: {
+      web: `http://127.0.0.1:${portOf(web)}`,
+      quote: quoteUrl,
+      policy: policyUrl,
+      claims: claimsUrl,
+    },
     db,
     bus,
     flushEvents: async () => {

@@ -64,10 +64,38 @@ describe('validatePanel', () => {
   const cases: [string, PanelMember[], RegExp][] = [
     ['empty panel', [], /empty/i],
     ['shares not totalling 100%', [{ insurer: 'A', bps: 9999 }], /100%/],
-    ['shares over 100%', [{ insurer: 'A', bps: 6000 }, { insurer: 'B', bps: 5000 }], /100%/],
-    ['duplicate insurer', [{ insurer: 'A', bps: 5000 }, { insurer: 'A', bps: 5000 }], /Duplicate/],
-    ['zero share', [{ insurer: 'A', bps: 0 }, { insurer: 'B', bps: 10_000 }], /Invalid share/],
-    ['fractional bps', [{ insurer: 'A', bps: 5000.5 }, { insurer: 'B', bps: 4999.5 }], /Invalid share/],
+    [
+      'shares over 100%',
+      [
+        { insurer: 'A', bps: 6000 },
+        { insurer: 'B', bps: 5000 },
+      ],
+      /100%/,
+    ],
+    [
+      'duplicate insurer',
+      [
+        { insurer: 'A', bps: 5000 },
+        { insurer: 'A', bps: 5000 },
+      ],
+      /Duplicate/,
+    ],
+    [
+      'zero share',
+      [
+        { insurer: 'A', bps: 0 },
+        { insurer: 'B', bps: 10_000 },
+      ],
+      /Invalid share/,
+    ],
+    [
+      'fractional bps',
+      [
+        { insurer: 'A', bps: 5000.5 },
+        { insurer: 'B', bps: 4999.5 },
+      ],
+      /Invalid share/,
+    ],
     ['blank insurer', [{ insurer: '', bps: 10_000 }], /name required/],
   ];
   it.each(cases)('rejects %s', (_name, panel, message) => {

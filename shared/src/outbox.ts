@@ -2,7 +2,11 @@ import { newEvent, type DomainEvent, type EventBus } from './events.js';
 import type { Db, Queryable } from './db.js';
 
 /** Write an event to the outbox inside the caller's transaction. */
-export async function enqueueEvent<T>(q: Queryable, type: string, data: T): Promise<DomainEvent<T>> {
+export async function enqueueEvent<T>(
+  q: Queryable,
+  type: string,
+  data: T,
+): Promise<DomainEvent<T>> {
   const evt = newEvent(type, data);
   await q.query('INSERT INTO outbox (event_id, payload) VALUES ($1, $2)', [
     evt.eventId,

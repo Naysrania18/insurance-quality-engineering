@@ -72,7 +72,9 @@ export function validateLegacyRow(row: LegacyRow, seen: Set<string>): string | n
 }
 
 export async function migrateV1ToV2(db: Db): Promise<MigrationStats> {
-  const { rows } = await db.query<LegacyRow>('SELECT * FROM legacy_policies ORDER BY policy_no, row_id');
+  const { rows } = await db.query<LegacyRow>(
+    'SELECT * FROM legacy_policies ORDER BY policy_no, row_id',
+  );
   const stats: MigrationStats = { read: rows.length, migrated: 0, rejected: 0 };
   const seen = new Set<string>();
 
@@ -81,16 +83,17 @@ export async function migrateV1ToV2(db: Db): Promise<MigrationStats> {
      ON CONFLICT (email) DO NOTHING`,
     [randomUUID(), LEGACY_BROKER_EMAIL],
   );
-  const brokerId = (await db.query('SELECT id FROM brokers WHERE email = $1', [LEGACY_BROKER_EMAIL])).rows[0].id;
+  const brokerId = (
+    await db.query('SELECT id FROM brokers WHERE email = $1', [LEGACY_BROKER_EMAIL])
+  ).rows[0].id;
 
   for (const row of rows) {
     const reason = validateLegacyRow(row, seen);
     if (reason) {
-      await db.query('INSERT INTO migration_rejects (policy_no, row_id, reason) VALUES ($1,$2,$3)', [
-        row.policy_no,
-        row.row_id,
-        reason,
-      ]);
+      await db.query(
+        'INSERT INTO migration_rejects (policy_no, row_id, reason) VALUES ($1,$2,$3)',
+        [row.policy_no, row.row_id, reason],
+      );
       stats.rejected++;
       continue;
     }
@@ -105,11 +108,10 @@ export async function migrateV1ToV2(db: Db): Promise<MigrationStats> {
          VALUES ($1,$2,'commercial_property',$3,$4,'BOUND')`,
         [riskId, brokerId, t.sumInsuredCents, `Migrated from legacy ${row.policy_no}`],
       );
-      await q.query(`INSERT INTO quotes (id, risk_id, premium_cents, status) VALUES ($1,$2,$3,'ACCEPTED')`, [
-        quoteId,
-        riskId,
-        t.premiumCents,
-      ]);
+      await q.query(
+        `INSERT INTO quotes (id, risk_id, premium_cents, status) VALUES ($1,$2,$3,'ACCEPTED')`,
+        [quoteId, riskId, t.premiumCents],
+      );
       await q.query(
         `INSERT INTO policies (id, policy_ref, quote_id, status, sum_insured_cents, total_premium_cents, bound_at)
          VALUES ($1,$2,$3,$4,$5,$6,$7)`,

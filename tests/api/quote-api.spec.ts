@@ -18,7 +18,9 @@ test.describe('quote-service: risks', () => {
   });
 
   test('submits a valid risk @smoke @regression', async ({ request }) => {
-    const res = await request.post(`${quote}/risks`, { data: new RiskBuilder().withBroker(brokerId).build() });
+    const res = await request.post(`${quote}/risks`, {
+      data: new RiskBuilder().withBroker(brokerId).build(),
+    });
     expect(res.status()).toBe(201);
     const risk = await res.json();
     expect(risk).toMatchObject({ status: 'SUBMITTED', riskType: 'marine_cargo', currency: 'USD' });
@@ -36,7 +38,9 @@ test.describe('quote-service: risks', () => {
   ];
   for (const [name, mutate, status] of invalid) {
     test(`rejects ${name} @regression`, async ({ request }) => {
-      const res = await request.post(`${quote}/risks`, { data: mutate(new RiskBuilder().withBroker(brokerId)).build() });
+      const res = await request.post(`${quote}/risks`, {
+        data: mutate(new RiskBuilder().withBroker(brokerId)).build(),
+      });
       expect(res.status()).toBe(status);
       expect((await res.json()).error.code).toBe('validation_error');
     });
@@ -58,12 +62,18 @@ test.describe('quote-service: risks', () => {
     expect(await res.text()).not.toMatch(/at .*\(.*:\d+:\d+\)/);
   });
 
-  test('returns 400 for a non-UUID id and 404 for an unknown id @regression', async ({ request }) => {
+  test('returns 400 for a non-UUID id and 404 for an unknown id @regression', async ({
+    request,
+  }) => {
     expect((await request.get(`${quote}/risks/not-a-uuid`)).status()).toBe(400);
-    expect((await request.get(`${quote}/risks/22222222-2222-4222-8222-222222222222`)).status()).toBe(404);
+    expect(
+      (await request.get(`${quote}/risks/22222222-2222-4222-8222-222222222222`)).status(),
+    ).toBe(404);
   });
 
-  test('is not vulnerable to SQL injection in query parameters @regression', async ({ request }) => {
+  test('is not vulnerable to SQL injection in query parameters @regression', async ({
+    request,
+  }) => {
     const res = await request.get(`${quote}/risks`, { params: { status: "SUBMITTED' OR '1'='1" } });
     expect(res.status()).toBe(200);
     expect(await res.json()).toEqual([]); // parameterised: treated as a literal, matches nothing
@@ -73,7 +83,9 @@ test.describe('quote-service: risks', () => {
 test.describe('quote-service: quoting', () => {
   test('quotes a marine risk at 0.80% @smoke @regression', async ({ request }) => {
     const risk = await (
-      await request.post(`${quote}/risks`, { data: new RiskBuilder().withBroker(brokerId).worth(500_000_00).build() })
+      await request.post(`${quote}/risks`, {
+        data: new RiskBuilder().withBroker(brokerId).worth(500_000_00).build(),
+      })
     ).json();
     const res = await request.post(`${quote}/risks/${risk.id}/quote`);
     expect(res.status()).toBe(201);
@@ -85,7 +97,11 @@ test.describe('quote-service: quoting', () => {
   test('quotes a property risk at 1.20% @regression', async ({ request }) => {
     const risk = await (
       await request.post(`${quote}/risks`, {
-        data: new RiskBuilder().withBroker(brokerId).ofType('commercial_property').worth(500_000_00).build(),
+        data: new RiskBuilder()
+          .withBroker(brokerId)
+          .ofType('commercial_property')
+          .worth(500_000_00)
+          .build(),
       })
     ).json();
     const q = await (await request.post(`${quote}/risks/${risk.id}/quote`)).json();
@@ -94,7 +110,9 @@ test.describe('quote-service: quoting', () => {
 
   test('applies the large-risk loading above 1,000,000 @regression', async ({ request }) => {
     const risk = await (
-      await request.post(`${quote}/risks`, { data: new RiskBuilder().withBroker(brokerId).worth(2_000_000_00).build() })
+      await request.post(`${quote}/risks`, {
+        data: new RiskBuilder().withBroker(brokerId).worth(2_000_000_00).build(),
+      })
     ).json();
     const q = await (await request.post(`${quote}/risks/${risk.id}/quote`)).json();
     expect(q.premiumCents).toBe(17_600_00); // 2,000,000 x 0.8% x 1.10
@@ -104,7 +122,9 @@ test.describe('quote-service: quoting', () => {
   test('DEF-004: loads a risk of exactly 1,000,000.00 @regression', async ({ request }) => {
     test.fail(true, 'DEF-004: threshold uses > instead of >=. See docs/planted-defects.md');
     const risk = await (
-      await request.post(`${quote}/risks`, { data: new RiskBuilder().withBroker(brokerId).worth(1_000_000_00).build() })
+      await request.post(`${quote}/risks`, {
+        data: new RiskBuilder().withBroker(brokerId).worth(1_000_000_00).build(),
+      })
     ).json();
     const q = await (await request.post(`${quote}/risks/${risk.id}/quote`)).json();
     expect(q.premiumCents).toBe(8_800_00);

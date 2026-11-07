@@ -22,7 +22,9 @@ export interface Target {
 export async function useTarget(): Promise<Target> {
   if (process.env.STACK_MODE === 'external') {
     const db = pgDb(process.env.DATABASE_URL ?? 'postgres://demo:demo@localhost:5432/insurance');
-    const bus = process.env.RABBITMQ_URL ? new RabbitBus(process.env.RABBITMQ_URL) : new InMemoryBus();
+    const bus = process.env.RABBITMQ_URL
+      ? new RabbitBus(process.env.RABBITMQ_URL)
+      : new InMemoryBus();
     return {
       urls: {
         web: process.env.WEB_URL ?? 'http://localhost:3000',
@@ -59,10 +61,16 @@ export async function useTarget(): Promise<Target> {
 }
 
 /** A fresh isolated database + bus (no HTTP) for event-handler tests. Bus is RabbitMQ if RABBITMQ_URL is set. */
-export async function useIsolatedEventEnv(): Promise<{ db: Db; bus: EventBus; stop(): Promise<void> }> {
+export async function useIsolatedEventEnv(): Promise<{
+  db: Db;
+  bus: EventBus;
+  stop(): Promise<void>;
+}> {
   const db = await pgliteDb();
   await applySchema(db);
-  const bus: EventBus = process.env.RABBITMQ_URL ? new RabbitBus(process.env.RABBITMQ_URL) : new InMemoryBus();
+  const bus: EventBus = process.env.RABBITMQ_URL
+    ? new RabbitBus(process.env.RABBITMQ_URL)
+    : new InMemoryBus();
   return {
     db,
     bus,

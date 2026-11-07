@@ -21,8 +21,11 @@ describe('claim events -> policy projection', () => {
     newEvent('ClaimSettled', { claimId, policyId, settledCents });
 
   const policyRow = async () =>
-    (await env.db.query('SELECT open_claims, claims_paid_cents FROM policies WHERE id = $1', [policyId]))
-      .rows[0] as { open_claims: number; claims_paid_cents: string };
+    (
+      await env.db.query('SELECT open_claims, claims_paid_cents FROM policies WHERE id = $1', [
+        policyId,
+      ])
+    ).rows[0] as { open_claims: number; claims_paid_cents: string };
   const state = async () => {
     const p = await policyRow();
     return { open: Number(p.open_claims), paid: Number(p.claims_paid_cents) };
@@ -41,13 +44,19 @@ describe('claim events -> policy projection', () => {
     const brokerId = randomUUID();
     const riskId = randomUUID();
     const quoteId = randomUUID();
-    await env.db.query(`INSERT INTO brokers (id, name, email) VALUES ($1,'B',$2)`, [brokerId, `${brokerId}@example.test`]);
+    await env.db.query(`INSERT INTO brokers (id, name, email) VALUES ($1,'B',$2)`, [
+      brokerId,
+      `${brokerId}@example.test`,
+    ]);
     await env.db.query(
       `INSERT INTO risks (id, broker_id, risk_type, insured_value_cents, description, status)
        VALUES ($1,$2,'marine_cargo',10000000,'x','BOUND')`,
       [riskId, brokerId],
     );
-    await env.db.query(`INSERT INTO quotes (id, risk_id, premium_cents, status) VALUES ($1,$2,80000,'ACCEPTED')`, [quoteId, riskId]);
+    await env.db.query(
+      `INSERT INTO quotes (id, risk_id, premium_cents, status) VALUES ($1,$2,80000,'ACCEPTED')`,
+      [quoteId, riskId],
+    );
     await env.db.query(
       `INSERT INTO policies (id, policy_ref, quote_id, status, sum_insured_cents, total_premium_cents)
        VALUES ($1,$2,$3,'BOUND',10000000,80000)`,
@@ -122,14 +131,19 @@ describe('claim events -> policy projection', () => {
     const claimId = randomUUID();
     await env.bus.publish(claimNotified(claimId));
     await waitFor(async () => (await state()).open === 1, { label: 'valid message processed' });
-    await waitFor(async () => env.bus.deadLetters(consumer).length === 1, { label: 'dead letter recorded' });
+    await waitFor(async () => env.bus.deadLetters(consumer).length === 1, {
+      label: 'dead letter recorded',
+    });
     expect(env.bus.deadLetters(consumer)[0].eventId).toBe(poison.eventId);
     await sub.stop();
   });
 
   it('converges to the same state regardless of event order (property check)', async () => {
     const claimIds = [randomUUID(), randomUUID(), randomUUID()];
-    const events = claimIds.flatMap((id, i) => [claimNotified(id), claimSettled(id, (i + 1) * 100)]);
+    const events = claimIds.flatMap((id, i) => [
+      claimNotified(id),
+      claimSettled(id, (i + 1) * 100),
+    ]);
     // reverse order is the worst case: every settle precedes its notify
     const sub = await subscribe();
     for (const e of [...events].reverse()) await env.bus.publish(e);
@@ -164,7 +178,9 @@ describe('transactional outbox', () => {
 
     await new Promise((r) => setTimeout(r, 250));
     expect(delivered).toEqual([]); // broker down: still pending
-    const pending = await env.db.query('SELECT COUNT(*)::int AS n FROM outbox WHERE published_at IS NULL');
+    const pending = await env.db.query(
+      'SELECT COUNT(*)::int AS n FROM outbox WHERE published_at IS NULL',
+    );
     expect(pending.rows[0].n).toBe(1);
 
     up = true; // broker recovers
@@ -205,9 +221,13 @@ describe('end-to-end event flow through the services (eventual consistency)', ()
 
   it('PolicyBound is published when a policy is bound', async () => {
     const received: DomainEvent[] = [];
-    const sub = await t.bus.subscribe(`test.observer.${randomUUID()}`, ['PolicyBound'], async (e) => {
-      received.push(e);
-    });
+    const sub = await t.bus.subscribe(
+      `test.observer.${randomUUID()}`,
+      ['PolicyBound'],
+      async (e) => {
+        received.push(e);
+      },
+    );
     const { policy } = await new Journey(t.urls).boundPolicy();
     await waitFor(
       async () => {
