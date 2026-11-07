@@ -1,0 +1,231 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  build:
+    name: Build (typecheck, lint, format)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+
+  unit:
+    name: Unit tests + coverage gate
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - name: Unit tests (fails below the coverage thresholds)
+        run: npx vitest run --config vitest.config.ts --coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: reports-unit, path: reports/, if-no-files-found: ignore }
+
+  api-contract:
+    name: API, Newman, contract, SQL, events, migration, AI tool (in-process stack)
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - name: Playwright API tests
+        run: npx playwright test --project=api
+      - name: Newman (Postman collection)
+        run: npm run test:newman
+      - name: Pact contract tests
+        run: npm run test:contract
+      - name: SQL validation
+        run: npm run test:sql
+      - name: Event-driven tests
+        run: npm run test:events
+      - name: Data migration + reconciliation
+        run: npm run test:migration
+      - name: AI tool tests (mocked LLM, no API key needed)
+        run: npm run test:ai
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reports-api-contract
+          path: |
+            reports/
+            pacts/
+          if-no-files-found: ignore
+
+  e2e:
+    name: E2E + full-stack tests (docker compose)
+    needs: [unit, api-contract]
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://demo:demo@localhost:5432/insurance
+      STACK_MODE: external
+      RABBITMQ_URL: amqp://guest:guest@localhost:5672
+      BASE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Start the stack
+        run: |
+          docker compose up --build -d
+          bash scripts/wait-for-stack.sh
+          npm run seed
+      - name: Smoke gate (zero failures allowed)
+        run: npx playwright test --grep @smoke --reporter=list
+      - name: Full API + E2E regression
+        run: npx playwright test
+      - name: SQL validation against the live database
+        run: npm run test:sql
+      - name: Event tests against real RabbitMQ
+        run: npm run test:events
+      - name: Collect container logs
+        if: always()
+        run: docker compose logs > reports/compose.log 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reports-e2e
+          path: reports/
+          if-no-files-found: ignore
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
+
+  security:
+    name: Security (OWASP ZAP, localhost only)
+    needs: [unit, api-contract]
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://demo:demo@localhost:5432/insurance
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - name: Start the stack
+        run: |
+          docker compose up --build -d
+          bash scripts/wait-for-stack.sh
+          npm run seed
+      - name: ZAP API scans + high-risk gate
+        run: bash security/run-zap.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reports-security
+          path: reports/
+          if-no-files-found: ignore
+      - run: docker compose down -v
+        if: always()
+
+  performance:
+    name: Performance (k6 short run + thresholds)
+    needs: [unit, api-contract]
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://demo:demo@localhost:5432/insurance
+      SCALE: '0.25'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - uses: grafana/setup-k6-action@v1
+      - name: Start the stack
+        run: |
+          docker compose up --build -d
+          bash scripts/wait-for-stack.sh
+          npm run seed
+      - name: k6 load (thresholds are the gate)
+        run: mkdir -p reports && k6 run --summary-export=reports/k6-load.json performance/load.js
+      - name: k6 stress
+        run: k6 run --summary-export=reports/k6-stress.json performance/stress.js
+      - name: k6 spike
+        run: k6 run --summary-export=reports/k6-spike.json performance/spike.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reports-performance
+          path: reports/
+          if-no-files-found: ignore
+      - run: docker compose down -v
+        if: always()
+
+  resilience:
+    name: Resilience (Toxiproxy fault injection)
+    needs: [unit, api-contract]
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgres://demo:demo@localhost:5432/insurance
+      STACK_MODE: external
+      TOXIPROXY_URL: http://localhost:8474
+      # claims-service talks to its dependencies THROUGH the proxies
+      CLAIMS_POLICY_URL: http://toxiproxy:8666
+      CLAIMS_RABBIT_URL: amqp://guest:guest@toxiproxy:8667
+      CLAIMS_DB_URL: postgres://demo:demo@toxiproxy:8668/insurance
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - name: Start the stack with Toxiproxy
+        run: |
+          docker compose --profile resilience up --build -d
+          bash scripts/wait-for-stack.sh
+          npm run seed
+      - name: Resilience tests
+        run: npm run test:resilience
+      - name: Container logs
+        if: always()
+        run: mkdir -p reports && docker compose --profile resilience logs > reports/resilience-compose.log 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reports-resilience
+          path: reports/
+          if-no-files-found: ignore
+      - run: docker compose --profile resilience down -v
+        if: always()
+
+  quality-summary:
+    name: Quality summary
+    needs: [unit, api-contract, e2e, security, performance, resilience]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '${{ env.NODE_VERSION }}', cache: npm }
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with: { pattern: 'reports-*', path: reports, merge-multiple: true }
+        continue-on-error: true
+      - name: Build quality summary
+        run: |
+          npm run report:quality
+          cat reports/quality-summary.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with: { name: quality-summary, path: reports/quality-summary.md }

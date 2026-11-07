@@ -1,0 +1,172 @@
+# Azure DevOps multi-stage pipeline: build -> unit -> API/contract -> E2E -> security -> performance.
+# Equivalent to .github/workflows/ci.yml (which runs publicly on GitHub). Results are published as
+# JUnit XML and Cobertura-style coverage; each stage is a quality gate (a failed stage blocks the next).
+trigger:
+  branches:
+    include: [main]
+pr:
+  branches:
+    include: ['*']
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  NODE_VERSION: '20.x'
+  DATABASE_URL: postgres://demo:demo@localhost:5432/insurance
+
+stages:
+  - stage: Build
+    displayName: Build (typecheck, lint, format)
+    jobs:
+      - job: build
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: $(NODE_VERSION) }
+          - script: npm ci
+            displayName: Install
+          - script: npm run typecheck && npm run lint && npm run format:check
+            displayName: Typecheck, ESLint, Prettier
+
+  - stage: Unit
+    displayName: Unit tests and coverage gate
+    dependsOn: Build
+    jobs:
+      - job: unit
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: $(NODE_VERSION) }
+          - script: npm ci
+          - script: npx vitest run --config vitest.config.ts --coverage
+            displayName: Unit tests (fails below coverage thresholds)
+          - task: PublishTestResults@2
+            condition: always()
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFiles: reports/junit-unit.xml
+              testRunTitle: Unit
+          - task: PublishCodeCoverageResults@2
+            condition: always()
+            inputs:
+              summaryFileLocation: reports/coverage/lcov.info
+
+  - stage: ApiContract
+    displayName: API, Newman, contract, SQL, events, migration
+    dependsOn: Unit
+    jobs:
+      - job: api
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: $(NODE_VERSION) }
+          - script: npm ci
+          - script: |
+              npx playwright test --project=api
+              npm run test:newman
+              npm run test:contract
+              npm run test:sql
+              npm run test:events
+              npm run test:migration
+              npm run test:ai
+            displayName: Run API-level suites (in-process stack)
+          - task: PublishTestResults@2
+            condition: always()
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFiles: 'reports/junit-*.xml'
+              testRunTitle: API and contract
+          - publish: reports
+            artifact: reports-api
+            condition: always()
+
+  - stage: E2E
+    displayName: E2E on docker compose
+    dependsOn: ApiContract
+    jobs:
+      - job: e2e
+        variables:
+          STACK_MODE: external
+          RABBITMQ_URL: amqp://guest:guest@localhost:5672
+          BASE_URL: http://localhost:3000
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: $(NODE_VERSION) }
+          - script: npm ci && npx playwright install --with-deps chromium
+          - script: |
+              docker compose up --build -d
+              bash scripts/wait-for-stack.sh
+              npm run seed
+            displayName: Start stack
+          - script: npx playwright test --grep @smoke
+            displayName: Smoke gate (zero failures)
+          - script: npx playwright test && npm run test:sql && npm run test:events
+            displayName: Full regression
+          - task: PublishTestResults@2
+            condition: always()
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFiles: 'reports/junit-*.xml'
+              testRunTitle: E2E
+          - publish: reports
+            artifact: reports-e2e
+            condition: always()
+          - script: docker compose down -v
+            condition: always()
+
+  - stage: Security
+    displayName: Security (OWASP ZAP, localhost only)
+    dependsOn: E2E
+    jobs:
+      - job: zap
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: $(NODE_VERSION) }
+          - script: |
+              npm ci
+              docker compose up --build -d
+              bash scripts/wait-for-stack.sh
+              npm run seed
+            displayName: Start stack
+          - script: bash security/run-zap.sh
+            displayName: ZAP API scans and high-risk gate
+          - publish: reports
+            artifact: reports-security
+            condition: always()
+          - script: docker compose down -v
+            condition: always()
+
+  - stage: Performance
+    displayName: Performance (k6 thresholds)
+    dependsOn: Security
+    jobs:
+      - job: k6
+        variables:
+          SCALE: '0.25'
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: $(NODE_VERSION) }
+          - script: |
+              sudo gpg -k
+              sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+              echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+              sudo apt-get update && sudo apt-get install -y k6
+            displayName: Install k6
+          - script: |
+              npm ci
+              docker compose up --build -d
+              bash scripts/wait-for-stack.sh
+              npm run seed
+            displayName: Start stack
+          - script: |
+              mkdir -p reports
+              k6 run --summary-export=reports/k6-load.json performance/load.js
+              k6 run --summary-export=reports/k6-stress.json performance/stress.js
+              k6 run --summary-export=reports/k6-spike.json performance/spike.js
+            displayName: k6 load, stress, spike (thresholds fail the build)
+          - script: npm run report:quality
+            condition: always()
+            displayName: Generate quality summary
+          - publish: reports
+            artifact: reports-performance
+            condition: always()
+          - script: docker compose down -v
+            condition: always()

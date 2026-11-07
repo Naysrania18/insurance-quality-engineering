@@ -10,9 +10,9 @@
 - [x] Stage 4E - SQL validation
 - [x] Stage 4F - Event-driven tests
 - [x] Stage 4G - Data migration
-- [ ] Stage 4H - ZAP security
-- [ ] Stage 4I - k6 performance
-- [ ] Stage 4J - Toxiproxy resilience
+- [x] Stage 4H (scripts; run in CI) - ZAP security
+- [x] Stage 4I (scripts; run in CI) - k6 performance
+- [x] Stage 4J (tests; run in CI) - Toxiproxy resilience
 - [x] Stage 4K - AI-assisted testing tool
 - [ ] Stage 5 - CI/CD + quality gates
 - [ ] Stage 6 - Self-check loop
